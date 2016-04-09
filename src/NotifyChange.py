@@ -1,6 +1,9 @@
-import urllib
+import ConfigParser
+import argparse
 import difflib
+import json
 import smtplib
+import urllib
 from email.mime.text import MIMEText
 
 
@@ -18,7 +21,12 @@ def get_html(url, params=None):
 
 
 def get_filename(url):
-    return ''
+    url = url.replace('http://', '')
+    url = url.replace('https://', '')
+    url = url.replace('www.', '')
+    url = url.replace('/', '_')
+    url = url.replace('.', '_')
+    return url + '_stored.html'
 
 
 def read_html(path, filename):
@@ -46,7 +54,7 @@ def compare_html(expected, actual):
         print 'The HTML file changed since last check. Notifying via e-mail.'
         return True
     else:
-        print "The HTML file didn't change since last check. Trying again later."
+        print "The HTML file didn't change since last check. Try again later."
         return False
 
 
@@ -70,15 +78,26 @@ def notify(recipient, username, password, smtp_server, url):
 
 
 # Command line arguments
-url = ''
-params = {}
+parser = argparse.ArgumentParser(description='Monitor changes in websites.')
+parser.add_argument('url', metavar='URL', type=str, help='the monitored url')
+parser.add_argument('-p', '--params', metavar='params', type=json.loads,
+                    help='optional url parameter for HTTP GET. In a JSON notation e.g.: \'{"foo" : "bar"}\'')
+
+args = parser.parse_args()
+url = args.url
+params = args.params
+####
 
 # Configuration file options
-default_path = ''
-recipient = ''
-username = ''
-password = ''
-smtp_server = ''
+config = ConfigParser.ConfigParser()
+config.read('configuration.ini')
+
+default_path = config.get('configuration', 'default_path')
+recipient = config.get('configuration', 'recipient')
+username = config.get('configuration', 'username')
+password = config.get('configuration', 'password')
+smtp_server = config.get('configuration', 'smtp_server')
+####
 
 current_html = get_html(url, params)
 if not file_exists(default_path, get_filename(url)):
