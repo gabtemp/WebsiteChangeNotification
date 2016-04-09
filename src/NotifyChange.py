@@ -17,6 +17,28 @@ def get_html(url, params=None):
         print 'Error, response code: ' + response.code + '.'
 
 
+def get_filename(url):
+    return ''
+
+
+def read_html(path, filename):
+    with open(path + '/' + filename, 'r') as f:
+        return f.read()
+
+
+def save_html(path, filename, text):
+    with open(path + '/' + filename, 'w') as f:
+        f.write(text)
+
+
+def file_exists(path, filename):
+    try:
+        open(path + '/' + filename, 'r')
+    except IOError:
+        return False
+    return True
+
+
 def compare_html(expected, actual):
     lines1 = expected.splitlines(1)
     lines2 = actual.splitlines(1)
@@ -45,3 +67,28 @@ def notify(recipient, username, password, smtp_server, url):
     smtp.sendmail(username, [recipient], message.as_string())
     smtp.quit()
     print 'Email sent successfully'
+
+
+# Command line arguments
+url = ''
+params = {}
+
+# Configuration file options
+default_path = ''
+recipient = ''
+username = ''
+password = ''
+smtp_server = ''
+
+current_html = get_html(url, params)
+if not file_exists(default_path, get_filename(url)):
+    print 'This is the first check on this website. From now on every change will be notified.'
+    save_html(default_path, get_filename(url), current_html)
+    exit(0)
+
+print 'A previous version of this website was found. Comparing...'
+last_html = read_html(default_path, get_filename(url))
+different = compare_html(last_html, current_html)
+if different:
+    save_html(default_path, get_filename(url), current_html)
+    notify(recipient, username, password, smtp_server, url)
